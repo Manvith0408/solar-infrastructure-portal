@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Rooftop Solar Installation Report - <%= meterNumber %></title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 12mm 12mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background-color: #ffffff;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .container {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Top National Header Bar */
+    .top-accent-bar {
+      height: 6px;
+      background: linear-gradient(90deg, #0284c7 0%, #10b981 50%, #f59e0b 100%);
+      border-radius: 3px;
+      margin-bottom: 12px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .header .gov-title {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: #0369a1;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .header .report-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .header .sub-caption {
+      font-size: 8.5px;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+
+    /* Sub-header Metadata Bar */
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .meta-label {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 2px;
+    }
+    .meta-value {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .meta-value.accent {
+      color: #0284c7;
+      font-family: monospace;
+    }
+    .meta-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #dcfce7;
+      border: 1px solid #16a34a;
+      color: #15803d;
+      font-weight: 700;
+      font-size: 9px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Metric Cards Grid (4 boxes in a row) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3.5px;
+    }
+    .kpi-card.blue::before { background: #0284c7; }
+    .kpi-card.teal::before { background: #0d9488; }
+    .kpi-card.amber::before { background: #f59e0b; }
+    .kpi-card.emerald::before { background: #10b981; }
+
+    .kpi-label {
+      font-size: 7.5px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+    .kpi-sub {
+      font-size: 7.5px;
+      color: #64748b;
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      padding-bottom: 3px;
+      border-bottom: 1.5px solid #0f172a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-title span.tag {
+      font-size: 7.5px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Data Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 9.5px;
+    }
+    .data-table th, .data-table td {
+      padding: 6px 10px;
+      text-align: left;
+      border: 1px solid #e2e8f0;
+    }
+    .data-table th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    .data-table tr.total-row td {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #0f172a;
+      border-top: 2px solid #cbd5e1;
+    }
+    .text-right {
+      text-align: right !important;
+    }
+    .text-center {
+      text-align: center !important;
+    }
+
+    /* Green Highlight Box: Subsidy Eligibility */
+    .subsidy-box {
+      background: #f0fdf4;
+      border: 1.5px solid #16a34a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin: 12px 0;
+    }
+    .subsidy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .subsidy-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #15803d;
+      letter-spacing: 0.3px;
+    }
+    .subsidy-pill {
+      background: #15803d;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .subsidy-text {
+      font-size: 9px;
+      color: #166534;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .subsidy-slabs-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .slab-pill {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      padding: 4px 8px;
+      text-align: center;
+    }
+    .slab-pill.active {
+      border: 1.5px solid #15803d;
+      background: #dcfce7;
+    }
+    .slab-pill .cap {
+      font-size: 7.5px;
+      font-weight: 600;
+      color: #166534;
+      text-transform: uppercase;
+    }
+    .slab-pill .amt {
+      font-size: 10px;
+      font-weight: 800;
+      color: #14532d;
+    }
+
+    /* Financial Table Styling */
+    .finance-row-highlight {
+      background: #ecfdf5 !important;
+      font-weight: 700;
+      color: #065f46;
+    }
+    .finance-row-net {
+      background: #eff6ff !important;
+      font-weight: 800;
+      color: #1e3a8a;
+      font-size: 10.5px;
+    }
+
+    /* Footer Notice */
+    .footer {
+      margin-top: 14px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 7.5px;
+      color: #64748b;
+    }
+    .footer strong {
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Top National Accent Bar -->
+    <div class="top-accent-bar"></div>
+
+    <!-- Header Section -->
+    <header class="header">
+      <div class="gov-title">MINISTRY OF NEW & RENEWABLE ENERGY (MNRE) / PM SURYA GHAR YOJANA</div>
+      <h1 class="report-title">PERSONAL ROOFTOP SOLAR INSTALLATION REPORT</h1>
+      <div class="sub-caption">STATUTORY RESIDENTIAL SYSTEM SIZING & DIRECT BENEFIT TRANSFER (DBT) ADVISORY</div>
+    </header>
+
+    <!-- Sub-header Info Row -->
+    <div class="meta-box">
+      <div class="meta-item">
+        <span class="meta-label">Applicant / Consumer</span>
+        <span class="meta-value"><%= userName %></span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">DISCOM Meter / CA No.</span>
+        <span class="meta-value accent"><%= meterNumber %></span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">City / Distribution Zone</span>
+        <span class="meta-value"><%= city || 'National Capital Region' %></span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Date Generated</span>
+        <span class="meta-value"><%= dateGenerated %></span>
+      </div>
+      <div class="meta-item" style="align-items: flex-end;">
+        <span class="meta-badge">Subsidy Verified</span>
+      </div>
+    </div>
+
+    <!-- Metric Cards Grid (4 boxes in a row) -->
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Recommended System</div>
+        <div class="kpi-value"><%= recommendedKw %> kW</div>
+        <div class="kpi-sub">Grid-Tied Monocrystalline</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Estimated Generation</div>
+        <div class="kpi-value"><%= estimatedDailyKwh %> kWh/day</div>
+        <div class="kpi-sub">~<%= Math.round(estimatedDailyKwh * 30) %> Units / Month</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Gross CAPEX</div>
+        <div class="kpi-value">₹<%= grossCost.toLocaleString('en-IN') %></div>
+        <div class="kpi-sub">Benchmark: ₹60,000 / kW</div>
+      </div>
+      <div class="kpi-card emerald">
+        <div class="kpi-label">Net Out-of-Pocket</div>
+        <div class="kpi-value">₹<%= netCost.toLocaleString('en-IN') %></div>
+        <div class="kpi-sub">After PM Surya Ghar Subsidy</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Sizing Mathematics & Load Audit -->
+    <div class="section-title">
+      <span>1. Sizing Mathematics & Load Audit</span>
+      <span class="tag">Standard MNRE Solar Sizing Algorithm (4.0 kWh/kW/day)</span>
+    </div>
+
+    <% if (consumptionType === 'BILL') { %>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Audit Parameter</th>
+            <th>Inputted / Derived Value</th>
+            <th>Standard MNRE Constant</th>
+            <th class="text-right">Sizing Output</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Monthly Electricity Consumption</strong></td>
+            <td><%= monthlyBillUnits %> kWh (Units) / month</td>
+            <td>Residential Domestic Tariff</td>
+            <td class="text-right">Billing Cycle Units</td>
+          </tr>
+          <tr>
+            <td><strong>Average Daily Consumption Load</strong></td>
+            <td><%= (monthlyBillUnits / 30).toFixed(2) %> kWh / day</td>
+            <td>30-Day Averaging Divisor</td>
+            <td class="text-right"><%= (monthlyBillUnits / 30).toFixed(2) %> kWh/day</td>
+          </tr>
+          <tr>
+            <td><strong>Solar Specific Yield Benchmark</strong></td>
+            <td>4.0 Units / kW / day</td>
+            <td>MNRE Class-I Solar Radiation Zone</td>
+            <td class="text-right">4.0 kWh / kWp</td>
+          </tr>
+          <tr class="total-row">
+            <td><strong>Final Sized Rooftop Capacity</strong></td>
+            <td>Formula: Daily Load (kWh) ÷ 4.0 Yield</td>
+            <td>Optimal 100% Net Offset Ratio</td>
+            <td class="text-right"><strong><%= recommendedKw %> kW Capacity</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    <% } else { %>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Appliance Category</th>
+            <th class="text-center">Active Quantity</th>
+            <th class="text-center">Rated Wattage</th>
+            <th class="text-center">Daily Usage</th>
+            <th class="text-right">Daily Energy (kWh)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% 
+            const appList = [
+              { key: 'fan', name: 'Ceiling Fans', watts: 75, hours: 6 },
+              { key: 'bulb', name: 'LED Lights / Bulbs', watts: 10, hours: 6 },
+              { key: 'tv', name: 'Smart Television', watts: 100, hours: 5 },
+              { key: 'fridge', name: 'Refrigerator', watts: 200, hours: 24 },
+              { key: 'ac', name: 'Inverter Air Conditioner', watts: 1500, hours: 6 }
+            ];
+            let calculatedTotalWh = 0;
+            appList.forEach(item => {
+              const count = Number(applianceCounts[item.key]) || 0;
+              const wh = count * item.watts * item.hours;
+              calculatedTotalWh += wh;
+          %>
+            <tr>
+              <td><strong><%= item.name %></strong></td>
+              <td class="text-center"><%= count %> Units</td>
+              <td class="text-center"><%= item.watts %> W</td>
+              <td class="text-center"><%= item.hours %> hrs/day</td>
+              <td class="text-right"><%= (wh / 1000).toFixed(2) %> kWh</td>
+            </tr>
+          <% }); %>
+          <tr class="total-row">
+            <td colspan="4"><strong>Total Daily Connected Energy Requirement</strong></td>
+            <td class="text-right"><strong><%= (calculatedTotalWh / 1000).toFixed(2) %> kWh/day</strong></td>
+          </tr>
+          <tr class="total-row" style="background: #eff6ff;">
+            <td colspan="4"><strong>Recommended Solar Capacity (Yield: 4.0 kWh/kW/day)</strong></td>
+            <td class="text-right"><strong style="color: #0284c7;"><%= recommendedKw %> kW System</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    <% } %>
+
+    <!-- Section 2: Subsidy Eligibility (Green Highlight Box) -->
+    <div class="subsidy-box">
+      <div class="subsidy-header">
+        <div class="subsidy-tag">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>ELIGIBLE FOR PM SURYA GHAR: MUFT BIJLI YOJANA SUBSIDY</span>
+        </div>
+        <span class="subsidy-pill">Direct Benefit Transfer (DBT)</span>
+      </div>
+      <p class="subsidy-text">
+        Under the Government of India PM Surya Ghar Scheme, residential consumers installing rooftop solar systems are eligible for upfront Central Financial Assistance (CFA). Based on your recommended system size of <strong><%= recommendedKw %> kW</strong>, you qualify for a government subsidy grant of <strong>₹<%= subsidyAmount.toLocaleString('en-IN') %></strong> transferred directly into your Aadhaar-linked bank account upon Discom meter installation.
+      </p>
+      <div class="subsidy-slabs-row">
+        <div class="slab-pill <%= recommendedKw <= 1 ? 'active' : '' %>">
+          <div class="cap">1 kW System</div>
+          <div class="amt">₹30,000 Subsidy</div>
+        </div>
+        <div class="slab-pill <%= (recommendedKw > 1 && recommendedKw < 3) ? 'active' : '' %>">
+          <div class="cap">2 kW System</div>
+          <div class="amt">₹60,000 Subsidy</div>
+        </div>
+        <div class="slab-pill <%= recommendedKw >= 3 ? 'active' : '' %>">
+          <div class="cap">3 kW & Above</div>
+          <div class="amt">₹78,000 Max Cap</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Financial Budget Breakdown -->
+    <div class="section-title">
+      <span>3. Financial Budget Breakdown</span>
+      <span class="tag">Benchmark MNRE Capital Expenditure Schedule</span>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Financial Component</th>
+          <th>Description & Scope</th>
+          <th>Rate Basis</th>
+          <th class="text-right">Amount (INR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Base System CAPEX</strong></td>
+          <td>Solar PV Modules, Grid Inverter, Bi-directional Net Meter, Structure</td>
+          <td>₹60,000 / kW</td>
+          <td class="text-right">₹<%= grossCost.toLocaleString('en-IN') %></td>
+        </tr>
+        <tr class="finance-row-highlight">
+          <td><strong>Central Government Subsidy (CFA)</strong></td>
+          <td>Direct Benefit Transfer (PM Surya Ghar Yojana DBT Scheme)</td>
+          <td>Discom Net-Meter Verified</td>
+          <td class="text-right" style="color: #15803d;">- ₹<%= subsidyAmount.toLocaleString('en-IN') %></td>
+        </tr>
+        <tr class="finance-row-net">
+          <td><strong>Final User Payable Amount</strong></td>
+          <td><strong>Net Out-of-Pocket Investment (Payable by Homeowner)</strong></td>
+          <td>Net Capital Expenditure</td>
+          <td class="text-right" style="color: #0369a1; font-size: 12px;"><strong>₹<%= netCost.toLocaleString('en-IN') %></strong></td>
+        </tr>
+        <tr>
+          <td><strong>Estimated Monthly Savings</strong></td>
+          <td>Displaced grid utility bill at average tariff ₹8.5/kWh</td>
+          <td>~<%= Math.round(estimatedDailyKwh * 30) %> Units/month</td>
+          <td class="text-right" style="color: #16a34a; font-weight: 700;">~₹<%= monthlySavingsEst.toLocaleString('en-IN') %> / month</td>
+        </tr>
+        <tr>
+          <td><strong>Estimated Capital Payback Period</strong></td>
+          <td>Breakeven timeline based on monthly savings generation</td>
+          <td>Zero Escalation Model</td>
+          <td class="text-right" style="font-weight: 700;"><%= paybackYears %> Years</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Footer Notice -->
+    <footer class="footer">
+      <div>
+        <strong>PM Surya Ghar: Muft Bijli Yojana</strong> • National Portal for Rooftop Solar (<a href="https://pmsuryaghar.gov.in" style="color: #0284c7; text-decoration: none;">pmsuryaghar.gov.in</a>)
+      </div>
+      <div>
+        Doc Ref: <strong><%= meterNumber %>-<%= (inquiryId ? inquiryId.toString().slice(-6) : 'REC').toUpperCase() %></strong> • Generated on <%= dateGenerated %>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+services:
+  # 1. Express Backend Web Service
+  - type: web
+    name: sdpr-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        sync: false
+      - key: ADMIN_REGISTRATION_SECRET
+        value: DISCOM_ADMIN_2026
+      - key: FIREBASE_PROJECT_ID
+        value: solardpr-6d6a4
+
+  # 2. Frontend Static Site
+  - type: static
+    name: sdpr-frontend
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishDir: out
+    envVars:
+      - key: STATIC_EXPORT
+        value: "true"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: sdpr-backend
+          property: host

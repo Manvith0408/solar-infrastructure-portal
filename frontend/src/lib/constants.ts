@@ -1,8 +1,5 @@
-// API URL configured for deployed Render backend (NEXT_PUBLIC_API_URL / VITE_API_URL)
-const rawApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof process !== 'undefined' && process.env?.VITE_API_URL) ||
-  'http://localhost:5000/api';
+// API URL configured for deployed Render backend (NEXT_PUBLIC_API_URL)
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export const API_BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
 

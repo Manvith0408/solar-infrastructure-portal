@@ -13,11 +13,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Dynamic CORS configuration reading from process.env.CLIENT_URL for Render deployment
-const clientUrl = process.env.CLIENT_URL;
-
 app.use(
   cors({
-    origin: clientUrl || ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],

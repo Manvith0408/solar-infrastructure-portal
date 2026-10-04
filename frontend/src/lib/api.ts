@@ -1,10 +1,6 @@
 // Client API service communicating with Express backend
-// Configured to point to the deployed Render backend via NEXT_PUBLIC_API_URL or VITE_API_URL
-const rawApiUrl =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof process !== 'undefined' && process.env?.VITE_API_URL) ||
-  'http://localhost:5000/api';
-
+// Configured to point to the deployed Render backend via NEXT_PUBLIC_API_URL
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const API_BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
 
 export interface ConsumptionData {

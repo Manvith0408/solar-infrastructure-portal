@@ -27,6 +27,8 @@ out/
 frontend/out/
 build/
 dist/
+.cache/
+backend/.cache/
 
 # Logs
 npm-debug.log*

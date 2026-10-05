@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon -w src -w server.js -w .env server.js"
+    "dev": "nodemon -w src -w server.js -w .env server.js",
+    "build": "echo 'No build step required for backend'",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

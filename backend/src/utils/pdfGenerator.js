@@ -364,27 +364,14 @@ async function generatePersonalDPRPdf(inquiry, user = {}) {
   let browser = null;
   try {
     browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    }).catch(async () => {
-      const candidatePaths = [
-        process.env.PUPPETEER_EXECUTABLE_PATH,
-        '/usr/bin/google-chrome-stable',
-        '/usr/bin/chromium',
-        '/usr/bin/chromium-browser',
-        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
-      ].filter(Boolean);
-      for (const p of candidatePaths) {
-        if (fs.existsSync(p)) {
-          return puppeteer.launch({
-            headless: 'new',
-            executablePath: p,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-          });
-        }
-      }
-      throw new Error('No browser executable found for PDF generation');
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, // Let Puppeteer find its own bundled Chromium if undefined
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
     });
 
     const page = await browser.newPage();

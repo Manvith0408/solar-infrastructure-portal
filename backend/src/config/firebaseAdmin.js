@@ -1,66 +1,38 @@
 const admin = require('firebase-admin');
 const { getAuth } = require('firebase-admin/auth');
-const fs = require('fs');
-const path = require('path');
 
-let isInitialized = false;
+// Compatibility polyfill for admin.credential across firebase-admin versions (v12+)
+if (!admin.credential) {
+  admin.credential = { cert: admin.cert };
+}
+
+// Ensure the private key newlines are parsed correctly from the environment variable
+const privateKey = process.env.FIREBASE_PRIVATE_KEY 
+  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') 
+  : undefined;
+
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: privateKey,
+  })
+});
+
 let authInstance = null;
 
 function initFirebaseAdmin() {
-  if (isInitialized && authInstance) return { admin, auth: authInstance };
+  if (authInstance) return { admin, auth: authInstance };
 
   try {
     const existingApps = admin.getApps ? admin.getApps() : (admin.apps || []);
     if (existingApps.length > 0) {
-      isInitialized = true;
       authInstance = getAuth(existingApps[0]);
-      return { admin, auth: authInstance };
+    } else {
+      authInstance = getAuth();
     }
-
-    const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    const projectId = process.env.FIREBASE_PROJECT_ID || 'solardpr-6d6a4';
-
-    let app = null;
-
-    if (serviceAccountVar) {
-      let certObj;
-      if (serviceAccountVar.trim().startsWith('{')) {
-        certObj = JSON.parse(serviceAccountVar);
-      } else {
-        const candidatePaths = [
-          path.resolve(serviceAccountVar),
-          path.resolve(__dirname, '../../', serviceAccountVar),
-          path.resolve(__dirname, '../..', serviceAccountVar)
-        ];
-        for (const p of candidatePaths) {
-          if (fs.existsSync(p)) {
-            certObj = JSON.parse(fs.readFileSync(p, 'utf8'));
-            break;
-          }
-        }
-      }
-
-      if (certObj) {
-        const cred = typeof admin.cert === 'function' ? admin.cert(certObj) : (admin.credential?.cert ? admin.credential.cert(certObj) : undefined);
-        app = admin.initializeApp({
-          credential: cred,
-          projectId: certObj.project_id || projectId
-        });
-        isInitialized = true;
-        authInstance = getAuth(app);
-        console.log(`[Firebase Admin] Initialized with Service Account credentials for project: ${certObj.project_id || projectId}`);
-        return { admin, auth: authInstance };
-      }
-    }
-
-    // Default initialization
-    app = admin.initializeApp({ projectId });
-    isInitialized = true;
-    authInstance = getAuth(app);
-    console.log(`[Firebase Admin] Initialized with project ID: ${projectId}`);
   } catch (error) {
-    console.warn('[Firebase Admin] Warning during initialization:', error.message);
-    isInitialized = true;
+    console.warn('[Firebase Admin] Warning obtaining Auth instance:', error.message);
   }
 
   return { admin, auth: authInstance };

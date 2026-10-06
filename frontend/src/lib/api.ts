@@ -1,7 +1,5 @@
 // Client API service communicating with Express backend
-// Configured to point to the deployed Render backend via NEXT_PUBLIC_API_URL
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const API_BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
+import { API_BASE_URL } from './constants';
 
 export interface ConsumptionData {
   type: 'BILL' | 'APPLIANCES';

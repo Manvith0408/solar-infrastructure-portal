@@ -1,6 +1,7 @@
 const { PublicInquiryRepo, VendorRepo } = require('../models/store');
 const { calculatePublicSystemSize } = require('../utils/solarConstants');
 const { generatePersonalDPRPdf } = require('../utils/pdfGenerator');
+const { invalidateLeadStatsCache } = require('../utils/cache');
 
 /**
  * POST /api/public/calculate
@@ -58,6 +59,8 @@ async function calculateAndSaveInquiry(req, res) {
       },
       { new: true, upsert: true, runValidators: true }
     );
+
+    invalidateLeadStatsCache();
 
     return res.status(200).json({
       success: true,
@@ -169,6 +172,8 @@ async function createInquiry(req, res) {
       }
     }
 
+    invalidateLeadStatsCache();
+
     return res.status(201).json({
       success: true,
       message: 'Inquiry created and persisted to database successfully.',
@@ -242,6 +247,8 @@ async function submitFeedback(req, res) {
         error: 'Inquiry record not found.'
       });
     }
+
+    invalidateLeadStatsCache();
 
     return res.status(200).json({
       success: true,

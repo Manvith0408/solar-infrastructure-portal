@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "Solar Infrastructure & DPR Planning Backend API",
   "main": "server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon -w src -w server.js -w .env server.js",
-    "build": "echo 'No build step required for backend'",
+    "build": "npm --prefix ../frontend run build || echo 'Built without frontend subproject'",
     "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
@@ -19,6 +22,7 @@
     "firebase-admin": "^14.5.0",
     "mongodb-memory-server": "^10.1.4",
     "mongoose": "^8.9.5",
+    "node-cache": "^5.1.2",
     "nodemailer": "^10.0.13",
     "otp-generator": "^4.0.1",
     "pdfkit": "^0.16.0",

@@ -3,13 +3,14 @@ const router = express.Router();
 const { verifyFirebaseToken } = require('../middleware/authMiddleware');
 const { UserRepo } = require('../models/store');
 const { createFirebaseAuthUser } = require('../config/firebaseAdmin');
+const asyncHandler = require('../middleware/asyncHandler');
 
 
 /**
  * POST /api/auth/register-public
  * Pre-flight validation, Meter Number deduplication, Firebase Auth creation, and MongoDB registration
  */
-router.post('/register-public', async (req, res) => {
+router.post('/register-public', asyncHandler(async (req, res) => {
   try {
     const { email, password, name, meterNumber } = req.body;
 
@@ -80,13 +81,13 @@ router.post('/register-public', async (req, res) => {
       error: error.message || "Failed to register user."
     });
   }
-});
+}));
 
 /**
  * POST /api/auth/register-admin
  * Protected Admin Registration with Department Authorization Code
  */
-router.post('/register-admin', async (req, res) => {
+router.post('/register-admin', asyncHandler(async (req, res) => {
   try {
     const { email, password, name, authCode } = req.body;
 
@@ -156,13 +157,13 @@ router.post('/register-admin', async (req, res) => {
       error: error.message || "Failed to register admin user."
     });
   }
-});
+}));
 
 /**
  * POST /api/auth/sync
  * Synchronizes Firebase User session with MongoDB User document
  */
-router.post('/sync', verifyFirebaseToken, async (req, res) => {
+router.post('/sync', verifyFirebaseToken, asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'User synced with database.',
@@ -170,13 +171,13 @@ router.post('/sync', verifyFirebaseToken, async (req, res) => {
     role: req.mongoUser.role,
     meterNumber: req.mongoUser.meterNumber
   });
-});
+}));
 
 /**
  * GET /api/auth/me or GET /api/users/me
  * Retrieves current authenticated user profile and role
  */
-router.get('/me', verifyFirebaseToken, async (req, res) => {
+router.get('/me', verifyFirebaseToken, asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     user: req.mongoUser,
@@ -185,6 +186,6 @@ router.get('/me', verifyFirebaseToken, async (req, res) => {
     email: req.mongoUser?.email || req.user?.email,
     meterNumber: req.mongoUser?.meterNumber
   });
-});
+}));
 
 module.exports = router;

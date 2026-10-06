@@ -29,6 +29,7 @@ build/
 dist/
 .cache/
 backend/.cache/
+*.tsbuildinfo
 
 # Logs
 npm-debug.log*
@@ -41,3 +42,12 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Python Virtual Environments & Cache
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+

@@ -1,7 +1,25 @@
-// API URL configured for deployed Render backend (NEXT_PUBLIC_API_URL)
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+/**
+ * Safely normalizes the API URL with protocol patching for Render or custom hosting.
+ * Handles bare hostnames (e.g., 'sdpr-backend.onrender.com' without http/https).
+ */
+export function normalizeApiUrl(raw?: string): string {
+  if (!raw || !raw.trim()) return 'http://localhost:5000/api';
+  let url = raw.trim();
 
-export const API_BASE_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
+  // Patch protocol if missing (common when Render passes fromService.host without scheme)
+  if (!/^https?:\/\//i.test(url)) {
+    if (url.startsWith('localhost') || url.startsWith('127.0.0.1')) {
+      url = `http://${url}`;
+    } else {
+      url = `https://${url}`;
+    }
+  }
+
+  // Ensure trailing /api is present exactly once
+  return url.endsWith('/api') ? url : `${url.replace(/\/+$/, '')}/api`;
+}
+
+export const API_BASE_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 export const SOLAR_CONSTANTS = {
   SOLAR_YIELD_KWH_PER_KW_DAY: 4,

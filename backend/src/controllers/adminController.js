@@ -2,6 +2,7 @@ const { PublicInquiryRepo, OfficialAreaDPRRepo, UserRepo, PublicInquiryModel } =
 const { getIsInMemory } = require('../config/db');
 const { calculateAreaDPR } = require('../utils/solarConstants');
 const { generateOfficialDPRPdf } = require('../utils/pdfGenerator');
+const { statsCache, invalidateLeadStatsCache } = require('../utils/cache');
 
 /**
  * GET /api/admin/leads
@@ -30,34 +31,49 @@ async function getLeads(req, res) {
       ];
     }
 
-    const [leads, totalCount, statsAgg] = await Promise.all([
+    // Check memory cache for lead stats aggregation
+    let statsAgg = statsCache.get('lead_stats_agg');
+
+    const dbPromises = [
       PublicInquiryRepo.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      PublicInquiryRepo.countDocuments(filter),
-      PublicInquiryRepo.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalDemandedKw: { $sum: '$calculatedKw' },
-            totalDemandedCost: { $sum: '$calculatedCost' },
-            avgRating: { $avg: '$feedbackRating' },
-            totalLeads: { $sum: 1 },
-            pendingCount: {
-              $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] }
-            },
-            approvedCount: {
-              $sum: { $cond: [{ $eq: ['$status', 'APPROVED'] }, 1, 0] }
-            },
-            commissionedCount: {
-              $sum: { $cond: [{ $eq: ['$status', 'COMMISSIONED'] }, 1, 0] }
+      PublicInquiryRepo.countDocuments(filter)
+    ];
+
+    if (!statsAgg) {
+      dbPromises.push(
+        PublicInquiryRepo.aggregate([
+          {
+            $group: {
+              _id: null,
+              totalDemandedKw: { $sum: '$calculatedKw' },
+              totalDemandedCost: { $sum: '$calculatedCost' },
+              avgRating: { $avg: '$feedbackRating' },
+              totalLeads: { $sum: 1 },
+              pendingCount: {
+                $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] }
+              },
+              approvedCount: {
+                $sum: { $cond: [{ $eq: ['$status', 'APPROVED'] }, 1, 0] }
+              },
+              commissionedCount: {
+                $sum: { $cond: [{ $eq: ['$status', 'COMMISSIONED'] }, 1, 0] }
+              }
             }
           }
-        }
-      ])
-    ]);
+        ])
+      );
+    }
+
+    const [leads, totalCount, freshAgg] = await Promise.all(dbPromises);
+
+    if (!statsAgg && freshAgg) {
+      statsAgg = freshAgg;
+      statsCache.set('lead_stats_agg', statsAgg);
+    }
 
     const stats = statsAgg[0] || {
       totalDemandedKw: 0,
@@ -211,6 +227,9 @@ async function updateLeadStatus(req, res) {
       });
     }
 
+    // Invalidate lead stats aggregation cache upon status update
+    invalidateLeadStatsCache();
+
     return res.status(200).json({
       success: true,
       message: `Inquiry status updated to ${statusToSave}.`,
@@ -357,11 +376,97 @@ async function downloadDPRPdf(req, res) {
   }
 }
 
+/**
+ * GET /api/admin/leads/export
+ * Exports CRM PublicInquiry leads as a downloadable CSV.
+ */
+async function exportLeadsCsv(req, res) {
+  try {
+    const { status, search } = req.query;
+
+    const filter = {};
+    if (status && status !== 'ALL') {
+      filter.status = status;
+    }
+
+    if (search && search.trim().length > 0) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      filter.$or = [
+        { meterNumber: searchRegex },
+        { consumerName: searchRegex },
+        { city: searchRegex },
+        { userPhone: searchRegex }
+      ];
+    }
+
+    const leads = await PublicInquiryRepo.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const headers = [
+      'Inquiry ID',
+      'Date',
+      'Meter Number',
+      'Consumer Name',
+      'Phone',
+      'City',
+      'Calculated kW',
+      'Gross Cost (INR)',
+      'Subsidy Amount (INR)',
+      'Net Cost (INR)',
+      'Status',
+      'Feedback Rating'
+    ];
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = leads.map((l) => {
+      const gross = l.grossCost ?? l.calculatedCost ?? 0;
+      const subsidy = l.subsidyAmount ?? 0;
+      const net = l.netCost ?? (gross - subsidy);
+      const dateStr = l.createdAt ? new Date(l.createdAt).toISOString().replace('T', ' ').slice(0, 19) : '';
+      return [
+        escapeCsv(l._id || l.id),
+        escapeCsv(dateStr),
+        escapeCsv(l.meterNumber || ''),
+        escapeCsv(l.consumerName || l.name || ''),
+        escapeCsv(l.userPhone || l.phone || ''),
+        escapeCsv(l.city || ''),
+        escapeCsv(l.calculatedKw || 0),
+        escapeCsv(gross),
+        escapeCsv(subsidy),
+        escapeCsv(net),
+        escapeCsv(l.status || 'PENDING'),
+        escapeCsv(l.feedbackRating ?? '')
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\r\n');
+    const filename = `crm-leads-export-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    console.error('Error in exportLeadsCsv:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to export CRM leads to CSV.',
+      details: error.message
+    });
+  }
+}
+
 module.exports = {
   getInquiries,
   getLeads,
   updateLeadStatus,
   generateAreaDPR,
   getDPRList,
-  downloadDPRPdf
+  downloadDPRPdf,
+  exportLeadsCsv
 };

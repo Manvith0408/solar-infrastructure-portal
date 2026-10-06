@@ -1,9 +1,11 @@
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./src/config/db');
+const requestLogger = require('./src/middleware/requestLogger');
 const publicRoutes = require('./src/routes/publicRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const authRoutes = require('./src/routes/authRoutes');
@@ -11,6 +13,9 @@ const { PublicInquiryRepo, OfficialAreaDPRRepo, VendorRepo, UserRepo } = require
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Colored terminal logging middleware
+app.use(requestLogger);
 
 // Dynamic CORS configuration reading from process.env.CLIENT_URL for Render deployment
 app.use(
@@ -41,6 +46,32 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', authRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Full-Stack Unified Hosting: Serve static frontend export if present
+const possibleStaticDirs = [
+  path.resolve(__dirname, '../frontend/out'),
+  path.resolve(__dirname, './frontend/out'),
+  path.resolve(__dirname, '../out'),
+  path.resolve(__dirname, 'public')
+];
+const staticDir = possibleStaticDirs.find((d) => fs.existsSync(d));
+
+if (staticDir) {
+  console.log(`[Unified Full-Stack] Serving static frontend build from: ${staticDir}`);
+  app.use(express.static(staticDir));
+
+  // Client-side HTML5 routing fallback for non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    const indexPath = path.join(staticDir, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    return next();
+  });
+} else {
+  console.log('[Unified Full-Stack] Static frontend directory not found. Running in standalone API mode.');
+}
 
 // Global Error Handler
 app.use((err, req, res, next) => {

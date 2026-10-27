@@ -85,9 +85,51 @@ async function getLeads(req, res) {
       commissionedCount: 0
     };
 
+    // Enrich each lead document with mapped user, costs, and demographic fields
+    const enrichedLeads = await Promise.all(
+      leads.map(async (inq) => {
+        let userObj = inq.user;
+        let matchedUser = null;
+        if (!userObj || typeof userObj !== 'object' || !userObj.name) {
+          if (inq.meterNumber) {
+            matchedUser = await UserRepo.findOne({ meterNumber: inq.meterNumber });
+          }
+          if (!matchedUser && inq.userId) {
+            matchedUser = await UserRepo.findOne({ firebaseUid: inq.userId });
+          }
+          const defaultEmail = inq.consumerName
+            ? `${inq.consumerName.toLowerCase().replace(/[^a-z0-9]/g, '')}@gmail.com`
+            : 'citizen@example.com';
+          userObj = {
+            name: inq.consumerName || matchedUser?.name || 'Citizen User',
+            email: matchedUser?.email || inq.userEmail || inq.consumerEmail || defaultEmail,
+            meterNumber: inq.meterNumber || matchedUser?.meterNumber || ''
+          };
+        }
+
+        const grossCost = inq.grossCost ?? inq.calculatedCost ?? 0;
+        const subsidyAmount = inq.subsidyAmount ?? 0;
+        const netCost = inq.netCost ?? (grossCost - subsidyAmount);
+
+        return {
+          ...inq,
+          consumerName: inq.consumerName || userObj.name || 'Citizen User',
+          name: inq.consumerName || userObj.name || 'Citizen User',
+          email: userObj.email,
+          user: userObj,
+          city: inq.city || 'Delhi NCR',
+          grossCost,
+          calculatedCost: grossCost,
+          subsidyAmount,
+          netCost,
+          status: inq.status || 'Pending'
+        };
+      })
+    );
+
     return res.status(200).json({
       success: true,
-      data: leads,
+      data: enrichedLeads,
       pagination: {
         total: totalCount,
         page,

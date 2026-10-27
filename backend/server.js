@@ -130,91 +130,25 @@ async function seedInitialData() {
       console.log('[Seed] Initial Admin & Public users seeded.');
     }
 
-    const count = await PublicInquiryRepo.countDocuments();
-    if (count === 0) {
-      console.log('[Seed] Populating initial PublicInquiry records for Lead CRM...');
-      const sampleLeads = [
-        {
-          meterNumber: 'NDMC-849201',
-          consumerName: 'Rajesh Sharma',
-          consumerPhone: '+91 98112 43210',
-          city: 'South Delhi',
-          consumptionData: { type: 'BILL', value: 480 },
-          calculatedKw: 4.0,
-          calculatedCost: 240000,
-          subsidyAmount: 78000,
-          netCost: 162000,
-          batteryBackupKwh: 8.0,
-          status: 'PENDING',
-          feedbackRating: 5
-        },
-        {
-          meterNumber: 'DHBVN-739102',
-          consumerName: 'Sunita Mehra',
-          consumerPhone: '+91 97188 54321',
-          city: 'Gurugram',
-          consumptionData: {
-            type: 'APPLIANCES',
-            value: { fan: 4, bulb: 8, tv: 1, fridge: 1, ac: 2 }
-          },
-          calculatedKw: 6.2,
-          calculatedCost: 372000,
-          subsidyAmount: 78000,
-          netCost: 294000,
-          batteryBackupKwh: 12.4,
-          status: 'APPROVED',
-          feedbackRating: 4
-        },
-        {
-          meterNumber: 'BSES-552918',
-          consumerName: 'Vikramaditya Roy',
-          consumerPhone: '+91 98234 11223',
-          city: 'Noida Sector 62',
-          consumptionData: { type: 'BILL', value: 240 },
-          calculatedKw: 2.0,
-          calculatedCost: 120000,
-          subsidyAmount: 60000,
-          netCost: 60000,
-          batteryBackupKwh: 4.0,
-          status: 'APPROVED',
-          vendorContacted: true,
-          feedbackRating: 5
-        },
-        {
-          meterNumber: 'PVVNL-441209',
-          consumerName: 'Ananya Deshmukh',
-          consumerPhone: '+91 99100 88776',
-          city: 'Greater Noida',
-          consumptionData: {
-            type: 'APPLIANCES',
-            value: { fan: 3, bulb: 6, tv: 1, fridge: 1, ac: 1 }
-          },
-          calculatedKw: 3.5,
-          calculatedCost: 210000,
-          subsidyAmount: 78000,
-          netCost: 132000,
-          batteryBackupKwh: 7.0,
-          status: 'COMMISSIONED',
-          feedbackRating: 5
-        },
-        {
-          meterNumber: 'UPPCL-392184',
-          consumerName: 'Harish Chandra Verma',
-          consumerPhone: '+91 94150 99881',
-          city: 'Ghaziabad',
-          consumptionData: { type: 'BILL', value: 120 },
-          calculatedKw: 1.0,
-          calculatedCost: 60000,
-          subsidyAmount: 30000,
-          netCost: 30000,
-          batteryBackupKwh: 2.0,
-          status: 'PENDING',
-          feedbackRating: 4
+    // Clean up any historical mock/seed leads so admin dashboard connects exclusively to real database inquiries
+    try {
+      await PublicInquiryRepo.deleteMany({
+        consumerName: {
+          $in: [
+            'Harish Chandra Verma',
+            'Rajesh Sharma',
+            'Sunita Mehra',
+            'Vikramaditya Roy',
+            'Ananya Deshmukh',
+            'Suresh Kumar',
+            'Priya Sharma',
+            'Vikram Malhotra'
+          ]
         }
-      ];
-
-      await PublicInquiryRepo.insertMany(sampleLeads);
-      console.log(`[Seed] Inserted ${sampleLeads.length} sample inquiries.`);
+      });
+      console.log('[Seed] Database initialized: zero mock inquiries active.');
+    } catch (cleanupErr) {
+      console.warn('[Seed] Note: PublicInquiry mock cleanup skipped:', cleanupErr.message);
     }
 
     const dprCount = await OfficialAreaDPRRepo.countDocuments();

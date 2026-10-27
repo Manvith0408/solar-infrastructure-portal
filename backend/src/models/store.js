@@ -278,6 +278,25 @@ const PublicInquiryRepo = {
         commissionedCount
       }
     ];
+  },
+
+  async deleteMany(filter = {}) {
+    if (!getIsInMemory()) {
+      return PublicInquiryModel.deleteMany(filter);
+    }
+    let removedCount = 0;
+    for (let i = memoryPublicInquiries.length - 1; i >= 0; i--) {
+      const doc = memoryPublicInquiries[i];
+      let matches = true;
+      if (filter.consumerName?.$in && Array.isArray(filter.consumerName.$in)) {
+        if (!filter.consumerName.$in.includes(doc.consumerName)) matches = false;
+      }
+      if (matches) {
+        memoryPublicInquiries.splice(i, 1);
+        removedCount++;
+      }
+    }
+    return { deletedCount: removedCount };
   }
 };
 

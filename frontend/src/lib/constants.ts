@@ -5,6 +5,9 @@
 export function normalizeApiUrl(raw?: string): string {
   if (!raw || !raw.trim()) {
     if (typeof window !== 'undefined') {
+      if (window.location.port === '3000') {
+        return 'http://localhost:5000/api';
+      }
       return `${window.location.origin}/api`;
     }
     return 'http://localhost:5000/api';

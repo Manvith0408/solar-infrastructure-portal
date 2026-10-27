@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { InquiryItem, fetchAdminInquiries, updateInquiryStatus } from '@/lib/api';
+import { InquiryItem, updateInquiryStatus } from '@/lib/api';
 import { StatusBadgeDropdown, LeadStatus } from './StatusBadgeDropdown';
 import { LeadKanban } from './LeadKanban';
-import { formatINR } from '@/lib/constants';
+import { API_BASE_URL, formatINR } from '@/lib/constants';
 import { useAuth } from '@/context/AuthContext';
 import {
   Users,
@@ -23,7 +23,7 @@ import {
 export function LeadCRM() {
   const { getIdToken } = useAuth();
   
-  // Requirement 2: Live Inquiries state and loading indicator
+  // Real MongoDB Inquiries state and loading indicator
   const [inquiries, setInquiries] = useState<InquiryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,42 +35,88 @@ export function LeadCRM() {
   const [page, setPage] = useState<number>(1);
   const pageSize = 15;
 
-  // Requirement 2: Fetch data from GET /api/admin/inquiries with Admin Firebase auth token
+  // Fetch real inquiries directly from backend database API (GET /api/admin/leads with fallback to /api/admin/inquiries)
+  // Ensures request includes Firebase Authorization header (Bearer ${token})
   const loadInquiries = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const token = await getIdToken();
-      const data = await fetchAdminInquiries(token);
-      setInquiries(data);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        // Fallback for demo admin authentication token
+        try {
+          const stored = typeof window !== 'undefined' ? localStorage.getItem('sdpr_demo_auth') : null;
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed.token) headers['Authorization'] = `Bearer ${parsed.token}`;
+          }
+        } catch {}
+      }
+
+      // 1. Fetch real inquiries directly from GET /api/admin/leads
+      let res = await fetch(`${API_BASE_URL}/admin/leads?limit=100`, {
+        headers,
+        cache: 'no-store'
+      });
+
+      // 2. Seamless fallback to GET /api/admin/inquiries if needed
+      if (!res.ok) {
+        res = await fetch(`${API_BASE_URL}/admin/inquiries`, {
+          headers,
+          cache: 'no-store'
+        });
+      }
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${res.status}: Failed to fetch live inquiries.`);
+      }
+
+      const resData = await res.json();
+      const rawLeads: InquiryItem[] = Array.isArray(resData)
+        ? resData
+        : (resData.data || resData.leads || []);
+
+      // Filter out any obsolete fake seed entries (e.g. Harish Chandra Verma)
+      const realLeads = rawLeads.filter(
+        (inq) =>
+          inq.consumerName !== 'Harish Chandra Verma' &&
+          inq.name !== 'Harish Chandra Verma' &&
+          inq.user?.name !== 'Harish Chandra Verma'
+      );
+
+      setInquiries(realLeads);
     } catch (err: unknown) {
-      console.error('Error loading live inquiries:', err);
-      setError(err instanceof Error ? err.message : 'Failed to retrieve live database inquiries.');
+      console.error('Error loading real database inquiries:', err);
+      setError(err instanceof Error ? err.message : 'Failed to retrieve real database inquiries.');
     } finally {
       setIsLoading(false);
     }
   }, [getIdToken]);
 
+  // useEffect hook to fetch real data from the backend API on mount, auth change, and poll periodically
   useEffect(() => {
     let ignore = false;
-    getIdToken()
-      .then((token) => fetchAdminInquiries(token))
-      .then((data) => {
-        if (!ignore) {
-          setInquiries(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to retrieve live database inquiries.');
-          setIsLoading(false);
-        }
-      });
+    loadInquiries();
+
+    // Real-time polling every 15 seconds so newly calculated citizen inquiries appear automatically
+    const interval = setInterval(() => {
+      if (!ignore) {
+        loadInquiries();
+      }
+    }, 15000);
+
     return () => {
       ignore = true;
+      clearInterval(interval);
     };
-  }, [getIdToken]);
+  }, [loadInquiries]);
 
   // Requirement 3: Dynamic Metrics Calculation
   const totalInquiries = inquiries.length;
@@ -403,7 +449,7 @@ export function LeadCRM() {
                 ) : filteredInquiries.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-slate-400 italic">
-                      No matching inquiries found in the database.
+                      No inquiries found in database. Real citizen calculations submitted through the portal will appear here in real-time.
                     </td>
                   </tr>
                 ) : (

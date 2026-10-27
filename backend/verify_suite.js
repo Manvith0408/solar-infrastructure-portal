@@ -116,13 +116,15 @@ async function runVerification() {
     const lines = res.body.trim().split('\r\n').length > 1 ? res.body.trim().split('\r\n') : res.body.trim().split('\n');
     const headerLine = lines[0];
 
-    if (res.statusCode === 200 && isCsvType && isAttachment && lines.length >= 2) {
+    if (res.statusCode === 200 && isCsvType && isAttachment && lines.length >= 1) {
       console.log('  ✔ PASS: Status code 200 OK');
       console.log('  ✔ PASS: Content-Type:', res.headers['content-type']);
       console.log('  ✔ PASS: Content-Disposition:', res.headers['content-disposition']);
       console.log('  ✔ PASS: CSV Header row:', headerLine);
       console.log('  ✔ PASS: Exported ' + (lines.length - 1) + ' data rows');
-      console.log('  ✔ Sample Data Row:\n    ' + lines[1]);
+      if (lines[1]) {
+        console.log('  ✔ Sample Data Row:\n    ' + lines[1]);
+      }
     } else {
       console.error('  ❌ FAIL: CSV export failed. Status:', res.statusCode, 'Headers:', res.headers, 'Body snippet:', res.body.slice(0, 200));
       allPassed = false;

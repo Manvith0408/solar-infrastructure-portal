@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Users, Zap, Grid2X2, Sliders } from 'lucide-react';
+import { Trash2, Users } from 'lucide-react';
 import { CohortPayload } from '@/lib/api';
 import { SOLAR_CONSTANTS } from '@/lib/constants';
 

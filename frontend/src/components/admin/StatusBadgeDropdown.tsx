@@ -6,7 +6,7 @@ export type LeadStatus = 'PENDING' | 'APPROVED' | 'COMMISSIONED' | 'Pending' | '
 interface StatusBadgeDropdownProps {
   currentStatus: LeadStatus;
   leadId: string;
-  onStatusChange: (leadId: string, newStatus: any) => Promise<void>;
+  onStatusChange: (leadId: string, newStatus: LeadStatus) => Promise<void>;
 }
 
 export function StatusBadgeDropdown({

@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Mail, Phone, Sun, GraduationCap, User, Sparkles, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
+import { Mail, Phone, Sun, GraduationCap, Sparkles, ExternalLink, Zap } from 'lucide-react';
 
 interface AboutCreatorProps {
   onClose?: () => void;

@@ -16,6 +16,7 @@ export interface PublicCalculatePayload {
 
 export interface PublicCalculateResponse {
   inquiryId: string;
+  _id?: string;
   meterNumber: string;
   consumptionData: ConsumptionData;
   calculatedKw: number;
@@ -90,8 +91,8 @@ export interface InquiryItem {
   batteryBackupKwh?: number;
   status: string;
   feedbackRating?: number | null;
-  selectedVendorId?: any;
-  selectedVendor?: any;
+  selectedVendorId?: string | { _id: string; companyName: string; phone?: string; rating?: number };
+  selectedVendor?: { _id: string; companyName: string; phone?: string; rating?: number };
   vendorContacted?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -309,7 +310,7 @@ export async function updateInquiryStatus(
   id: string,
   status: string,
   token?: string | null
-): Promise<any> {
+): Promise<{ success: boolean; data: InquiryItem; message?: string }> {
   const res = await fetch(`${API_BASE_URL}/admin/inquiries/${id}/status`, {
     method: 'PATCH',
     headers: {
@@ -373,7 +374,9 @@ export async function generateAndDownloadDPR(
     try {
       const errJson = await res.json();
       errMessage = errJson.error || errMessage;
-    } catch (_) {}
+    } catch {
+      // ignore json parse error
+    }
     throw new Error(errMessage);
   }
 
@@ -399,7 +402,7 @@ export async function generateAndDownloadDPR(
 /**
  * Admin: List past DPRs
  */
-export async function fetchDPRList(token?: string | null): Promise<any[]> {
+export async function fetchDPRList(token?: string | null): Promise<Record<string, unknown>[]> {
   const res = await fetch(`${API_BASE_URL}/admin/dpr`, {
     headers: {
       ...getAuthHeader(token)
@@ -481,7 +484,9 @@ export async function downloadPersonalDprPdf(
     try {
       const errJson = await res.json();
       errMessage = errJson.error || errMessage;
-    } catch (_) {}
+    } catch {
+      // ignore json parse error
+    }
     throw new Error(errMessage);
   }
 

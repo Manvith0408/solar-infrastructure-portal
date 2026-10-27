@@ -1,10 +1,108 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const otpGenerator = require('otp-generator');
 const { verifyFirebaseToken } = require('../middleware/authMiddleware');
-const { UserRepo } = require('../models/store');
+const { UserRepo, OtpVerificationRepo } = require('../models/store');
 const { createFirebaseAuthUser } = require('../config/firebaseAdmin');
+const { sendOtpEmail } = require('../utils/mailer');
 const asyncHandler = require('../middleware/asyncHandler');
 
+/**
+ * POST /api/auth/send-otp
+ * Generates and sends a 6-digit email OTP for registration or verification
+ */
+router.post('/send-otp', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({
+      success: false,
+      error: "A valid email address is required."
+    });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Generate 6-digit numeric OTP
+  const otp = otpGenerator.generate(6, {
+    digits: true,
+    lowerCaseAlphabets: false,
+    upperCaseAlphabets: false,
+    specialChars: false
+  });
+
+  const salt = await bcrypt.genSalt(10);
+  const otpHash = await bcrypt.hash(otp, salt);
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  // Clear prior OTPs and save new
+  await OtpVerificationRepo.deleteMany({ email: cleanEmail });
+  await OtpVerificationRepo.create({
+    email: cleanEmail,
+    otpHash,
+    expiresAt
+  });
+
+  const result = await sendOtpEmail(cleanEmail, otp);
+
+  return res.status(200).json({
+    success: true,
+    message: result.devMode
+      ? `Verification OTP generated. Code: ${otp}`
+      : `Verification code sent to ${cleanEmail}. Valid for 5 minutes.`,
+    devMode: result.devMode
+  });
+}));
+
+/**
+ * POST /api/auth/verify-otp
+ * Verifies email OTP code against stored bcrypt hash
+ */
+router.post('/verify-otp', asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res.status(400).json({
+      success: false,
+      error: "Both 'email' and 6-digit 'otp' are required."
+    });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanOtp = String(otp).trim();
+
+  const record = await OtpVerificationRepo.findOne({ email: cleanEmail });
+  if (!record) {
+    return res.status(400).json({
+      success: false,
+      error: "Verification code has expired or was not requested. Please request a new code."
+    });
+  }
+
+  if (new Date(record.expiresAt) <= new Date()) {
+    await OtpVerificationRepo.deleteMany({ email: cleanEmail });
+    return res.status(400).json({
+      success: false,
+      error: "Verification code has expired. Please request a new code."
+    });
+  }
+
+  const isMatch = await bcrypt.compare(cleanOtp, record.otpHash);
+  if (!isMatch) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid verification code."
+    });
+  }
+
+  // Code verified: delete to prevent replay
+  await OtpVerificationRepo.deleteMany({ email: cleanEmail });
+
+  return res.status(200).json({
+    success: true,
+    message: "Email verified successfully.",
+    verified: true
+  });
+}));
 
 /**
  * POST /api/auth/register-public

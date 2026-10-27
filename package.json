@@ -15,7 +15,8 @@
     "start:backend": "npm --prefix backend start",
     "start:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
-    "test:verify": "node ./backend/verify_suite.js"
+    "test:verify": "node ./backend/verify_suite.js",
+    "test:all": "node ./backend/test_comprehensive.js"
   },
   "dependencies": {
     "concurrently": "^9.1.2"

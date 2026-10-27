@@ -6,8 +6,7 @@ import {
   Globe,
   Sun,
   ShieldCheck,
-  Building2,
-  Cpu
+  Building2
 } from 'lucide-react';
 
 interface AdminSidebarProps {

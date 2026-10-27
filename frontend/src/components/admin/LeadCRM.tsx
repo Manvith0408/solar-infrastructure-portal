@@ -12,15 +12,12 @@ import {
   Filter,
   LayoutGrid,
   Table as TableIcon,
-  Sun,
   Star,
   Zap,
   IndianRupee,
-  Calendar,
   AlertCircle,
   Building,
-  RefreshCw,
-  Loader2
+  RefreshCw
 } from 'lucide-react';
 
 export function LeadCRM() {
@@ -46,17 +43,34 @@ export function LeadCRM() {
       const token = await getIdToken();
       const data = await fetchAdminInquiries(token);
       setInquiries(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading live inquiries:', err);
-      setError(err.message || 'Failed to retrieve live database inquiries.');
+      setError(err instanceof Error ? err.message : 'Failed to retrieve live database inquiries.');
     } finally {
       setIsLoading(false);
     }
   }, [getIdToken]);
 
   useEffect(() => {
-    loadInquiries();
-  }, [loadInquiries]);
+    let ignore = false;
+    getIdToken()
+      .then((token) => fetchAdminInquiries(token))
+      .then((data) => {
+        if (!ignore) {
+          setInquiries(data);
+          setIsLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to retrieve live database inquiries.');
+          setIsLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [getIdToken]);
 
   // Requirement 3: Dynamic Metrics Calculation
   const totalInquiries = inquiries.length;
@@ -121,7 +135,7 @@ export function LeadCRM() {
     try {
       const token = await getIdToken();
       await updateInquiryStatus(inquiryId, newStatus, token);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Status update failed:', err);
       // Revert from server on failure
       loadInquiries();

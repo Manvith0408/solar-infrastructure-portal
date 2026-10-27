@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth, UserRole } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/Tabs';
 import {
   Sun,
@@ -14,14 +14,11 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
-  Building,
   KeyRound,
-  Zap,
   CheckCircle2,
   Sparkles,
   Users,
   Compass,
-  FileText,
   User,
   Hash,
   UserPlus,
@@ -61,7 +58,6 @@ function LoginContent() {
   const {
     currentUser,
     userRole,
-    isLoading,
     loading,
     signInWithGoogle,
     signInWithPublicEmailPassword,

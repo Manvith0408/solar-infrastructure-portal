@@ -370,9 +370,7 @@ async function generatePersonalDPRPdf(inquiry, user = {}) {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-zygote',
-        '--single-process'
+        '--disable-gpu'
       ]
     });
 

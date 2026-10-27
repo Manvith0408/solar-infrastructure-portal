@@ -10,19 +10,13 @@ import {
   ArrowRight,
   Sparkles,
   Info,
-  CheckCircle2,
   AlertCircle,
-  HelpCircle,
-  TrendingDown,
   KeyRound,
   Download,
   FileText,
   Loader2,
-  User,
   History,
-  X,
-  Clock,
-  MapPin
+  X
 } from 'lucide-react';
 import { Header } from '@/components/public/Header';
 import { InputSelector } from '@/components/public/InputSelector';
@@ -68,65 +62,14 @@ function PublicB2CPortalContent() {
   const [pdfDownloadError, setPdfDownloadError] = useState<string | null>(null);
 
   // Firebase Auth & Saved Reports State
-  const { currentUser, userRole, mongoUser, signInWithGoogle, getIdToken, demoLogin } = useAuth();
+  const { currentUser, mongoUser, signInWithGoogle, getIdToken, demoLogin } = useAuth();
   const [savedInquiries, setSavedInquiries] = useState<LeadItem[]>([]);
   const [showSavedModal, setShowSavedModal] = useState<boolean>(false);
   const [showAboutCreator, setShowAboutCreator] = useState<boolean>(false);
   const [isLoadingSaved, setIsLoadingSaved] = useState<boolean>(false);
   const [unauthorizedToast, setUnauthorizedToast] = useState<string | null>(null);
 
-  const handleDownloadPersonalPdf = async (inquiryId?: string) => {
-    const targetId = inquiryId || result?.inquiryId || result?.meterNumber;
-    if (!targetId) return;
-
-    setIsDownloadingPdf(true);
-    setPdfDownloadError(null);
-
-    try {
-      const token = await getIdToken();
-      await downloadPersonalDprPdf(targetId, token);
-    } catch (err: any) {
-      console.error('PDF Download failed:', err);
-      setPdfDownloadError(err.message || 'Failed to generate PDF report.');
-    } finally {
-      setIsDownloadingPdf(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const msg = sessionStorage.getItem('sdpr_auth_toast');
-      const urlParams = new URLSearchParams(window.location.search);
-      if (msg || urlParams.get('auth_error') === 'unauthorized') {
-        setUnauthorizedToast(msg || 'Not Authorized: State Gov Administrator credentials required.');
-        sessionStorage.removeItem('sdpr_auth_toast');
-        window.history.replaceState({}, '', '/');
-        const timer = setTimeout(() => {
-          setUnauthorizedToast(null);
-        }, 6000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (currentUser) {
-      if (currentUser.displayName && (!consumerName || consumerName === 'Suresh Kumar')) {
-        setConsumerName(currentUser.displayName);
-      }
-      loadSavedInquiries();
-    } else {
-      setSavedInquiries([]);
-    }
-  }, [currentUser]);
-
-  React.useEffect(() => {
-    if (mongoUser?.meterNumber) {
-      setMeterNumber(mongoUser.meterNumber);
-    }
-  }, [mongoUser]);
-
-  const loadSavedInquiries = async () => {
+  const loadSavedInquiries = React.useCallback(async () => {
     setIsLoadingSaved(true);
     try {
       const token = await getIdToken();
@@ -139,7 +82,92 @@ function PublicB2CPortalContent() {
     } finally {
       setIsLoadingSaved(false);
     }
+  }, [getIdToken]);
+
+  const handleDownloadPersonalPdf = async (inquiryId?: string) => {
+    const targetId = inquiryId || result?.inquiryId || result?.meterNumber;
+    if (!targetId) return;
+
+    setIsDownloadingPdf(true);
+    setPdfDownloadError(null);
+
+    try {
+      const token = await getIdToken();
+      await downloadPersonalDprPdf(targetId, token);
+    } catch (err: unknown) {
+      console.error('PDF Download failed:', err);
+      setPdfDownloadError(err instanceof Error ? err.message : 'Failed to generate PDF report.');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const msg = sessionStorage.getItem('sdpr_auth_toast');
+      const urlParams = new URLSearchParams(window.location.search);
+      if (msg || urlParams.get('auth_error') === 'unauthorized') {
+        const toastMsg = msg || 'Not Authorized: State Gov Administrator credentials required.';
+        sessionStorage.removeItem('sdpr_auth_toast');
+        window.history.replaceState({}, '', '/');
+        const timer1 = setTimeout(() => {
+          setUnauthorizedToast(toastMsg);
+        }, 0);
+        const timer2 = setTimeout(() => {
+          setUnauthorizedToast(null);
+        }, 6000);
+        return () => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+        };
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    let isCancelled = false;
+
+    if (currentUser) {
+      if (currentUser.displayName) {
+        const dName = currentUser.displayName;
+        setTimeout(() => {
+          if (!isCancelled) {
+            setConsumerName((prev) => (!prev || prev === 'Suresh Kumar' ? dName : prev));
+          }
+        }, 0);
+      }
+
+      const timer = setTimeout(() => {
+        if (!isCancelled) {
+          loadSavedInquiries();
+        }
+      }, 0);
+      return () => {
+        isCancelled = true;
+        clearTimeout(timer);
+      };
+    } else {
+      const timer = setTimeout(() => {
+        if (!isCancelled) {
+          setSavedInquiries([]);
+        }
+      }, 0);
+      return () => {
+        isCancelled = true;
+        clearTimeout(timer);
+      };
+    }
+  }, [currentUser, loadSavedInquiries]);
+
+  React.useEffect(() => {
+    if (mongoUser?.meterNumber) {
+      const mNum = mongoUser.meterNumber;
+      const timer = setTimeout(() => {
+        setMeterNumber(mNum);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [mongoUser]);
 
   const handleApplianceCountChange = (appliance: string, count: number) => {
     setApplianceCounts((prev) => ({
@@ -174,15 +202,16 @@ function PublicB2CPortalContent() {
           },
           token
         );
-      } catch (calcErr) {
+      } catch {
         // Fallback sizing calculation if calculate endpoint has connection delays
         let dailyUnits = 0;
         if (mode === 'BILL') {
           dailyUnits = (Number(monthlyUnits) || 300) / 30;
         } else {
           let totalWatts = 0;
+          const specs = SOLAR_CONSTANTS.APPLIANCE_SPECS as Record<string, { watts: number; defaultHours: number }>;
           Object.entries(applianceCounts).forEach(([key, count]) => {
-            const spec = (SOLAR_CONSTANTS.APPLIANCE_SPECS as any)[key];
+            const spec = specs[key];
             if (spec && count > 0) {
               totalWatts += count * spec.watts * spec.defaultHours;
             }
@@ -230,15 +259,15 @@ function PublicB2CPortalContent() {
 
       const finalResult: PublicCalculateResponse = {
         ...calcResponse,
-        inquiryId: (persistedInquiry as any).inquiryId || (persistedInquiry as any)._id || calcResponse.inquiryId,
-        status: (persistedInquiry as any).status || calcResponse.status
+        inquiryId: persistedInquiry.inquiryId || persistedInquiry._id || calcResponse.inquiryId,
+        status: persistedInquiry.status || calcResponse.status
       };
 
       setResult(finalResult);
       await loadSavedInquiries();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error in handleCalculate:', err);
-      setErrorMsg(err.message || 'Error executing calculation.');
+      setErrorMsg(err instanceof Error ? err.message : 'Error executing calculation.');
     } finally {
       setIsCalculating(false);
     }

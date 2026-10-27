@@ -5,12 +5,9 @@ import {
   CheckCircle2,
   Zap,
   MapPin,
-  Building,
-  Loader2,
-  TrendingUp,
-  Cpu
+  Loader2
 } from 'lucide-react';
-import { formatINR, SOLAR_CONSTANTS } from '@/lib/constants';
+import { formatINR } from '@/lib/constants';
 
 interface DPRSummaryStickyProps {
   areaName: string;

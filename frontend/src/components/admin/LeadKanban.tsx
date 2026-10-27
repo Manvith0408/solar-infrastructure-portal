@@ -1,22 +1,17 @@
 import React from 'react';
-import { LeadItem } from '@/lib/api';
+import { InquiryItem } from '@/lib/api';
 import { LeadStatus } from './StatusBadgeDropdown';
 import { formatINR } from '@/lib/constants';
 import {
-  Sun,
   Star,
   MapPin,
-  Clock,
-  ArrowRight,
-  UserCheck,
-  CheckCircle2,
   Building,
   Phone
 } from 'lucide-react';
 
 interface LeadKanbanProps {
-  leads: any[];
-  onStatusChange: (leadId: string, newStatus: any) => Promise<void>;
+  leads: InquiryItem[];
+  onStatusChange: (leadId: string, newStatus: LeadStatus) => Promise<void>;
 }
 
 const COLUMNS: {

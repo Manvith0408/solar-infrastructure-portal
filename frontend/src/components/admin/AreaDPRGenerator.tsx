@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Sparkles, AlertCircle, CheckCircle, FileText, Download } from 'lucide-react';
+import { Plus, AlertCircle, CheckCircle } from 'lucide-react';
 import { CohortInputRow } from './CohortInputRow';
 import { DPRSummarySticky } from './DPRSummarySticky';
 import { CohortPayload, generateAndDownloadDPR } from '@/lib/api';
@@ -131,9 +131,9 @@ export function AreaDPRGenerator() {
         cohortData: cohorts
       }, token);
       setSuccessToast(`Official DPR for "${areaName}" downloaded successfully!`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || 'Failed to generate DPR PDF.');
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to generate DPR PDF.');
     } finally {
       setIsGeneratingPdf(false);
     }

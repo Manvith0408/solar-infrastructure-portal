@@ -47,7 +47,9 @@ Thumbs.db
 .venv/
 venv/
 ENV/
-env/
-__pycache__/
-*.pyc
 
+# Scratch notes & API key text files
+*(api).txt
+*api*.txt
+*.key
+solardpr.txt

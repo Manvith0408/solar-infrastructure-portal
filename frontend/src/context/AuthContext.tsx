@@ -5,6 +5,8 @@ import {
   User as FirebaseUser,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
@@ -105,6 +107,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * If onAuthStateChanged returns null, immediately clear state so route guards kick user back to /login.
    */
   useEffect(() => {
+    // Process redirect result if returning from a mobile/popup-blocked redirect flow
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          const user = result.user;
+          setCurrentUser(user);
+          try {
+            const token = await user.getIdToken();
+            const synced = await syncWithBackend(token, {
+              uid: user.uid,
+              email: user.email || '',
+              name: user.displayName || 'Google Citizen User',
+              photoURL: user.photoURL || ''
+            });
+
+            if (synced) {
+              setUserRole(synced.role);
+            } else {
+              const isAdm =
+                user.email?.includes('admin') ||
+                user.email?.includes('gov') ||
+                user.email?.includes('discom');
+              setUserRole(isAdm ? 'ADMIN' : 'PUBLIC');
+            }
+          } catch (tokErr) {
+            console.warn('[AuthContext] Redirect token processing error:', tokErr);
+          }
+        }
+      })
+      .catch((redirectErr) => {
+        console.warn('[AuthContext] getRedirectResult notice:', redirectErr);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setCurrentUser(firebaseUser);
@@ -183,20 +218,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Google OAuth sign-in
   const signInWithGoogle = async (): Promise<{ user: FirebaseUser; role: UserRole; redirectUrl: string }> => {
     setLoading(true);
+
+    // Normalize 127.0.0.1 to localhost to match Firebase Authorized Domains whitelist
+    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+      window.location.hostname = 'localhost';
+      return new Promise(() => {});
+    }
+
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      let user: FirebaseUser;
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        user = result.user;
+      } catch (popupErr: unknown) {
+        const errMsg = popupErr instanceof Error ? popupErr.message : '';
+        if (errMsg.includes('auth/popup-blocked') || errMsg.includes('auth/cancelled-popup-request')) {
+          console.warn('[AuthContext] Popup blocked or cancelled by browser. Falling back to signInWithRedirect...');
+          await signInWithRedirect(auth, googleProvider);
+          return new Promise(() => {});
+        }
+        throw popupErr;
+      }
+
       setCurrentUser(user);
 
       const token = await user.getIdToken();
-      await syncWithBackend(token, {
+      const synced = await syncWithBackend(token, {
         uid: user.uid,
         email: user.email || '',
         name: user.displayName || 'Google Citizen User',
         photoURL: user.photoURL || ''
       });
 
-      const role = await fetchUserRole(token);
+      const role = synced ? synced.role : await fetchUserRole(token);
       setUserRole(role);
 
       const redirectUrl = executeRoutingOperation(role, 'homeowner');

@@ -102,6 +102,52 @@ function PublicB2CPortalContent() {
     }
   };
 
+  // Google Sign-In state on landing page
+  const [isGoogleSigningIn, setIsGoogleSigningIn] = useState<boolean>(false);
+  const [googleSignInError, setGoogleSignInError] = useState<string | null>(null);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleSigningIn(true);
+    setGoogleSignInError(null);
+
+    // Normalize 127.0.0.1 to localhost for Firebase OAuth authorized domains
+    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+      window.location.hostname = 'localhost';
+      return;
+    }
+
+    try {
+      const { user } = await signInWithGoogle();
+      if (user.displayName) {
+        setConsumerName(user.displayName);
+      }
+      setTimeout(() => {
+        loadSavedInquiries();
+      }, 100);
+    } catch (err: unknown) {
+      console.error('[Google Sign In]', err);
+      let msg = 'Google sign-in failed. Please try again.';
+      if (err instanceof Error) {
+        if (err.message.includes('auth/popup-blocked')) {
+          msg = 'Sign-in popup was blocked by your browser. Please allow popups for localhost.';
+        } else if (err.message.includes('auth/popup-closed-by-user')) {
+          msg = 'Sign-in window was closed. Please click to try again.';
+        } else if (err.message.includes('auth/cancelled-popup-request')) {
+          msg = 'A sign-in request is already in progress.';
+        } else if (err.message.includes('auth/unauthorized-domain')) {
+          msg = 'Unauthorized domain. Please access via http://localhost:5000.';
+        } else if (err.message.includes('auth/network-request-failed')) {
+          msg = 'Network connection issue. Please check your internet connection.';
+        } else {
+          msg = err.message;
+        }
+      }
+      setGoogleSignInError(msg);
+    } finally {
+      setIsGoogleSigningIn(false);
+    }
+  };
+
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const msg = sessionStorage.getItem('sdpr_auth_toast');
@@ -323,11 +369,16 @@ function PublicB2CPortalContent() {
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto shrink-0">
               <button
                 type="button"
-                onClick={() => signInWithGoogle()}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-white hover:bg-slate-100 text-slate-900 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] cursor-pointer"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleSigningIn}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-white hover:bg-slate-100 text-slate-900 transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] cursor-pointer disabled:opacity-60"
               >
-                <span>Sign in with Google</span>
-                <ArrowRight className="w-4 h-4" />
+                {isGoogleSigningIn ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-900" />
+                ) : (
+                  <span>Sign in with Google</span>
+                )}
+                {!isGoogleSigningIn && <ArrowRight className="w-4 h-4" />}
               </button>
               <Link
                 href="/login"
@@ -336,6 +387,18 @@ function PublicB2CPortalContent() {
                 All Login Options →
               </Link>
             </div>
+            {googleSignInError && (
+              <div className="w-full mt-2 p-3 rounded-xl bg-red-950/80 border border-red-500/50 text-red-300 text-xs flex items-center justify-between">
+                <span>{googleSignInError}</span>
+                <button
+                  type="button"
+                  onClick={() => setGoogleSignInError(null)}
+                  className="text-slate-400 hover:text-white text-xs underline ml-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="p-3.5 px-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">

@@ -34,20 +34,23 @@ async function verifyFirebaseToken(req, res, next) {
     const decodedToken = await verifyFirebaseIdToken(token);
     req.user = decodedToken;
 
-    const firebaseUid = decodedToken.uid || decodedToken.user_id || decodedToken.sub;
-    const email = decodedToken.email || '';
-    const name = decodedToken.name || '';
-    const photoURL = decodedToken.picture || '';
+    const firebaseUid = decodedToken.uid || decodedToken.user_id || decodedToken.sub || req.body?.uid;
+    const email = (decodedToken.email || req.body?.email || '').toLowerCase().trim();
+    const name = decodedToken.name || req.body?.name || '';
+    const photoURL = decodedToken.picture || req.body?.photoURL || '';
 
     // Determine default role based on admin emails or token claims
     const isAdminEmail = ADMIN_EMAILS.some((adm) => adm.toLowerCase() === email.toLowerCase());
     const assignedRole = decodedToken.role === 'ADMIN' || isAdminEmail ? 'ADMIN' : 'PUBLIC';
 
     // Synchronize user document with MongoDB
-    let mongoUser = await UserRepo.findOne({ firebaseUid });
+    let mongoUser = null;
+    if (firebaseUid) {
+      mongoUser = await UserRepo.findOne({ firebaseUid });
+    }
 
     if (!mongoUser && email) {
-      // Check if user was previously seeded by email
+      // Check if user was previously seeded or registered by email
       mongoUser = await UserRepo.findOne({ email });
     }
 
@@ -61,11 +64,14 @@ async function verifyFirebaseToken(req, res, next) {
         role: assignedRole
       });
     } else {
-      // Update any changes (e.g. photo or name)
+      // Update any changes (e.g. photo, name, or link firebaseUid)
       const updates = {};
       if (name && mongoUser.name !== name) updates.name = name;
       if (photoURL && mongoUser.photoURL !== photoURL) updates.photoURL = photoURL;
       if (isAdminEmail && mongoUser.role !== 'ADMIN') updates.role = 'ADMIN';
+      if (firebaseUid && (!mongoUser.firebaseUid || mongoUser.firebaseUid !== firebaseUid)) {
+        updates.firebaseUid = firebaseUid;
+      }
 
       if (Object.keys(updates).length > 0) {
         mongoUser = await UserRepo.findOneAndUpdate({ _id: mongoUser._id }, updates, { new: true });

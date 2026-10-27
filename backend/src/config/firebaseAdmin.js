@@ -80,7 +80,9 @@ async function verifyFirebaseIdToken(token) {
     try {
       const parts = cleanToken.split('.');
       if (parts.length === 3) {
-        const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+        // Standard JWT payloads use base64url encoding
+        const base64Payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const payloadJson = Buffer.from(base64Payload, 'base64').toString('utf8');
         const payload = JSON.parse(payloadJson);
         if (payload && (payload.user_id || payload.sub || payload.uid)) {
           return {

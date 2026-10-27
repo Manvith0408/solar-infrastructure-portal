@@ -3,7 +3,12 @@
  * Handles bare hostnames (e.g., 'sdpr-backend.onrender.com' without http/https).
  */
 export function normalizeApiUrl(raw?: string): string {
-  if (!raw || !raw.trim()) return 'http://localhost:5000/api';
+  if (!raw || !raw.trim()) {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/api`;
+    }
+    return 'http://localhost:5000/api';
+  }
   let url = raw.trim();
 
   // Patch protocol if missing (common when Render passes fromService.host without scheme)

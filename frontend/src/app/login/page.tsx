@@ -221,6 +221,12 @@ function LoginContent() {
     setErrorMessage(null);
     setSuccessToast(null);
 
+    // If accessed via 127.0.0.1, switch to localhost to match Firebase Authorized Domains whitelist
+    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+      window.location.hostname = 'localhost';
+      return;
+    }
+
     try {
       const { role, redirectUrl } = await signInWithGoogle();
       setSuccessToast(
@@ -231,8 +237,23 @@ function LoginContent() {
         router.replace(redirectUrl || '/');
       }, 400);
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : 'Google authentication failed. Please try again.';
+      console.error('[handleGoogleLogin] Authentication error:', err);
+      let msg = 'Google authentication failed. Please try again.';
+      if (err instanceof Error) {
+        if (err.message.includes('auth/popup-blocked')) {
+          msg = 'Sign-in popup was blocked by your browser. Please allow popups for localhost and try again.';
+        } else if (err.message.includes('auth/popup-closed-by-user')) {
+          msg = 'Sign-in window was closed before completing. Click to try again.';
+        } else if (err.message.includes('auth/cancelled-popup-request')) {
+          msg = 'A sign-in request is already in progress. Please complete or close the open popup.';
+        } else if (err.message.includes('auth/unauthorized-domain')) {
+          msg = 'Unauthorized domain. Please access via http://localhost:5000.';
+        } else if (err.message.includes('auth/network-request-failed')) {
+          msg = 'Network connection issue. Please check your internet connection.';
+        } else {
+          msg = err.message;
+        }
+      }
       setErrorMessage(msg);
       setIsSubmitting(false);
     }

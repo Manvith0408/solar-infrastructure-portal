@@ -219,12 +219,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async (): Promise<{ user: FirebaseUser; role: UserRole; redirectUrl: string }> => {
     setLoading(true);
 
-    // Normalize 127.0.0.1 to localhost to match Firebase Authorized Domains whitelist
-    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
-      window.location.hostname = 'localhost';
-      return new Promise(() => {});
-    }
-
     try {
       let user: FirebaseUser;
       try {

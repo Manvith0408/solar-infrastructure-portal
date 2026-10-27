@@ -221,12 +221,6 @@ function LoginContent() {
     setErrorMessage(null);
     setSuccessToast(null);
 
-    // If accessed via 127.0.0.1, switch to localhost to match Firebase Authorized Domains whitelist
-    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
-      window.location.hostname = 'localhost';
-      return;
-    }
-
     try {
       const { role, redirectUrl } = await signInWithGoogle();
       setSuccessToast(

@@ -110,12 +110,6 @@ function PublicB2CPortalContent() {
     setIsGoogleSigningIn(true);
     setGoogleSignInError(null);
 
-    // Normalize 127.0.0.1 to localhost for Firebase OAuth authorized domains
-    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
-      window.location.hostname = 'localhost';
-      return;
-    }
-
     try {
       const { user } = await signInWithGoogle();
       if (user.displayName) {
